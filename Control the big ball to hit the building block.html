@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+    <title>Matter-JS</title>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.18.0/matter.min.js"></script>
+
+    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.11.1/matter.min.js"></script> -->
+    <!-- <script src="https://cdn.bootcss.com/matter-js/0.12.0/matter.min.js"></script> -->
+    <!-- <script src="../build/matter.js"></script> -->
+    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.18.0/matter.min.js"></script> -->
+</head>
+
+<body>
+
+    <script type="text/javascript">
+        var Engine = Matter.Engine,
+            Render = Matter.Render,
+            Runner = Matter.Runner,
+            Composites = Matter.Composites,
+            MouseConstraint = Matter.MouseConstraint,
+            Mouse = Matter.Mouse,
+            Composite = Matter.Composite,
+            Constraint = Matter.Constraint,
+            Bodies = Matter.Bodies;
+
+        // create engine
+        var engine = Engine.create(),
+            world = engine.world;
+
+        // create renderer
+        var render = Render.create({
+            element: document.body,
+            engine: engine,
+            options: {
+                width: 800,
+                height: 600,
+                showAngleIndicator: false
+            }
+        });
+        render.options.wireframes = false
+
+        Render.run(render);
+
+        // create runner
+        var runner = Runner.create();
+        Runner.run(runner, engine);
+
+        // 穿透属性
+        var defaultCategory = 0x0001,
+            blueCategory = 0x0002;
+
+
+        // add bodies
+        var rows = 10,
+            yy = 600 - 25 - 40 * rows;
+
+
+        // 生成右侧那一大堆
+        var stack = Composites.stack(400, yy, 5, rows, 0, 0, function(x, y) {
+            var category = blueCategory;
+
+            return Bodies.rectangle(x, y, 40, 40, {
+                collisionFilter: {
+                    category: category
+                },
+            });
+        });
+
+        Composite.add(world, [
+            stack,
+            // walls
+            Bodies.rectangle(400, 0, 800, 50, {
+                isStatic: true
+            }),
+            Bodies.rectangle(400, 600, 800, 50, {
+                isStatic: true
+            }),
+            Bodies.rectangle(800, 300, 50, 600, {
+                isStatic: true
+            }),
+            Bodies.rectangle(0, 300, 50, 600, {
+                isStatic: true
+            })
+        ]);
+
+        var ball = Bodies.circle(300, 400, 50, {
+            collisionFilter: {
+                mask: defaultCategory | blueCategory
+            },
+            density: 0.04,
+            frictionAir: 0.005
+        });
+
+        Composite.add(world, ball);
+        Composite.add(world, Constraint.create({
+            pointA: {
+                x: 300,
+                y: 100
+            },
+            bodyB: ball
+        }));
+
+        // add mouse control
+        var mouse = Mouse.create(render.canvas),
+            mouseConstraint = MouseConstraint.create(engine, {
+                mouse: mouse,
+                constraint: {
+                    stiffness: 0.2,
+                    render: {
+                        visible: false
+                    }
+                }
+            });
+
+        Composite.add(world, mouseConstraint);
+
+        // keep the mouse in sync with rendering
+        render.mouse = mouse;
+        mouseConstraint.collisionFilter.mask = defaultCategory;
+
+
+
+
+        // fit the render viewport to the scene
+        Render.lookAt(render, {
+            min: {
+                x: 0,
+                y: 0
+            },
+            max: {
+                x: 800,
+                y: 600
+            }
+        });
+        Matter.Events.on(engine, 'afterUpdate', function() {
+            if (Math.abs(ball.position.x) > 370) {
+                // console.log('111111');
+                alert('Verification successful')
+
+                Matter.Render.stop(render);
+                Matter.Runner.stop(runner);
+
+            }
+        });
+    </script>
+</body>
+
+</html>
